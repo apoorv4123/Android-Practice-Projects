@@ -29,8 +29,7 @@ class MainActivity : AppCompatActivity(), Executor {
             == PackageManager.PERMISSION_GRANTED
         ) {
             // Start your work for camera
-            textureView.post { // Creating a separate thread in which implementation of camera should start only
-                // after texture view has been properly inflated
+            textureView.post { 
                 startCamera()
             }
         } else {
@@ -56,8 +55,6 @@ class MainActivity : AppCompatActivity(), Executor {
             val file = File(externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
             imageCapture.takePicture(file, this, object : ImageCapture.OnImageSavedListener {
                 override fun onImageSaved(file: File) {
-//                    Toast.makeText( this@MainActivity, "Image Captured ${file.absolutePath}", Toast.LENGTH_LONG
-//                    ).show()// We cannot print toast here, bcoz this is not Main thread
                     Log.i("IMAGECAPTURE", "Image Captured ${file.absolutePath}")
                 }
 
@@ -66,7 +63,6 @@ class MainActivity : AppCompatActivity(), Executor {
                     message: String,
                     cause: Throwable?
                 ) {
-//                    Toast.makeText( this@MainActivity, "Error Capturing $message", Toast.LENGTH_LONG ).show()
                     Log.i("IMAGECAPTURE", "Error Capturing $message")
                 }
             })
@@ -75,11 +71,6 @@ class MainActivity : AppCompatActivity(), Executor {
         var previewConfig = PreviewConfig.Builder().apply {
 //            setTargetResolution(Size(1080, 1080))java.lang.IllegalArgumentException: Cannot use both setTargetResolution and setTargetAspectRatio on the same config.
             setTargetAspectRatio(AspectRatio.RATIO_16_9)
-            // These 2 methods are required to set the aspect ration & resolution of the screen
-            // you want to display on. Different devices have different aspect ratio and resolution
-            // depending on their screen sizes. This is just a sample, so here we're using target aspect
-            // ratio as 16:9 & target resolution 1080/1080. In real-life apps, you have to calculate
-            // the aspect ratio and resolution depending on the screen size and user modifications.
             setLensFacing(CameraX.LensFacing.BACK)// To set default lens
         }.build()
 
@@ -87,26 +78,25 @@ class MainActivity : AppCompatActivity(), Executor {
 
         btnSwap.setOnClickListener {
             Log.i("LENSSWAPPED", "Lens Swapped")
-            previewConfig = if (previewConfig.lensFacing == CameraX.LensFacing.BACK) {
-                PreviewConfig.Builder().apply {
+            if (previewConfig.lensFacing == CameraX.LensFacing.BACK) {
+                previewConfig = PreviewConfig.Builder().apply {
                     setTargetAspectRatio(AspectRatio.RATIO_16_9)
                     setLensFacing(CameraX.LensFacing.FRONT)
                 }.build()
+                preview = Preview(previewConfig)
             } else {
-                PreviewConfig.Builder().apply {
+                previewConfig = PreviewConfig.Builder().apply {
                     setTargetAspectRatio(AspectRatio.RATIO_16_9)
                     setLensFacing(CameraX.LensFacing.BACK)
                 }.build()
+                preview = Preview(previewConfig)
             }
         }
         preview.setOnPreviewOutputUpdateListener {
             // textureView.parent gives us the whole screen
             val parent = textureView.parent as ViewGroup// get current root of the textureView
-            parent.removeView(textureView)//remove the current view(TextureView) from parent(whole screen)
-            parent.addView(textureView, 0)// add a new textureView to parent(screen)
-            //In cases where you stack views on top of each other, index value will be required in that case
-            // as the new view to be added should be at the top of stack. In our case, this doesn't has
-            // much significance here bcoz we have zero textureViews when we're adding this one
+            parent.removeView(textureView)
+            parent.addView(textureView, 0)
             updateTransform()// make this function for handling rotation & other transformations if there
 //            textureView.surfaceTexture = it.surfaceTexture
 
@@ -114,16 +104,13 @@ class MainActivity : AppCompatActivity(), Executor {
             // The preview we're getting, we need to update that preview's surface texture to our own textureView
         }
 
-        // Bind the preview along with textureView to our camera.
-        // we do not have to handle lifecycle of the camera. It'll be handled on its own.
-        // We do this to ensure that our app doesn't uses camera when its in the background.
-        // Our app can only use camera when its in foreground
         CameraX.bindToLifecycle(this, preview, imageCapture)
     }
 
     private fun updateTransform() {
         val matrix = Matrix()
 
+        // Get the x & Y coordinates of center
         val centerX = textureView.width / 2f
         val centerY = textureView.height / 2f
 
