@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity(), Executor {
 
         val preview = Preview(previewConfig)
 
+        // Button for changing lenses
         btnSwap.setOnClickListener {
             Log.i("LENSSWAPPED", "Lens Swapped")
             if (previewConfig.lensFacing == CameraX.LensFacing.BACK) {
@@ -92,6 +93,7 @@ class MainActivity : AppCompatActivity(), Executor {
                 preview = Preview(previewConfig)
             }
         }
+        
         preview.setOnPreviewOutputUpdateListener {
             // textureView.parent gives us the whole screen
             val parent = textureView.parent as ViewGroup// get current root of the textureView
