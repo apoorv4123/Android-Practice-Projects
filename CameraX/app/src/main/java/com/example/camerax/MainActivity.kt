@@ -11,6 +11,7 @@ import androidx.camera.core.*
 import androidx.core.app.ActivityCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
+import java.lang.Exception
 import java.util.concurrent.Executor
 
 //const val PERMISSION_REQUEST_CAMERA = 123
@@ -44,16 +45,11 @@ class MainActivity : AppCompatActivity(), Executor {
 
     private fun startCamera() {
 
-        val imageCaptureConfig = ImageCaptureConfig.Builder().apply {
-            setTargetAspectRatio(AspectRatio.RATIO_16_9)// optional
-            setCaptureMode(ImageCapture.CaptureMode.MAX_QUALITY)
-        }.build()
-
-        val imageCapture = ImageCapture(imageCaptureConfig)
+        bindCameraUseCases()
 
         btnSave.setOnClickListener {
             val file = File(externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
-            imageCapture.takePicture(file, this, object : ImageCapture.OnImageSavedListener {
+            imageCapture?.takePicture(file, this, object : ImageCapture.OnImageSavedListener {
                 override fun onImageSaved(file: File) {
                     Log.i("IMAGECAPTURE", "Image Captured ${file.absolutePath}")
                 }
@@ -68,45 +64,20 @@ class MainActivity : AppCompatActivity(), Executor {
             })
         }
 
-        var previewConfig = PreviewConfig.Builder().apply {
-//            setTargetResolution(Size(1080, 1080))java.lang.IllegalArgumentException: Cannot use both setTargetResolution and setTargetAspectRatio on the same config.
-            setTargetAspectRatio(AspectRatio.RATIO_16_9)
-            setLensFacing(CameraX.LensFacing.BACK)// To set default lens
-        }.build()
-
-        val preview = Preview(previewConfig)
-
         // Button for changing lenses
         btnSwap.setOnClickListener {
-            Log.i("LENSSWAPPED", "Lens Swapped")
-            if (previewConfig.lensFacing == CameraX.LensFacing.BACK) {
-                previewConfig = PreviewConfig.Builder().apply {
-                    setTargetAspectRatio(AspectRatio.RATIO_16_9)
-                    setLensFacing(CameraX.LensFacing.FRONT)
-                }.build()
-                preview = Preview(previewConfig)
+            lensFacing = if(CameraX.LensFacing.FRONT == lensFacing) {
+                CameraX.LensFacing.BACK
             } else {
-                previewConfig = PreviewConfig.Builder().apply {
-                    setTargetAspectRatio(AspectRatio.RATIO_16_9)
-                    setLensFacing(CameraX.LensFacing.BACK)
-                }.build()
-                preview = Preview(previewConfig)
+                CameraX.LensFacing.FRONT
+            }
+            try {
+                CameraX.getCameraControl(lensFacing)
+                bindCameraUseCases()
+            } catch (e:Exception) {
+                e.printStackTrace()
             }
         }
-        
-        preview.setOnPreviewOutputUpdateListener {
-            // textureView.parent gives us the whole screen
-            val parent = textureView.parent as ViewGroup// get current root of the textureView
-            parent.removeView(textureView)
-            parent.addView(textureView, 0)
-            updateTransform()// make this function for handling rotation & other transformations if there
-//            textureView.surfaceTexture = it.surfaceTexture
-
-            textureView.setSurfaceTexture(it.surfaceTexture)
-            // The preview we're getting, we need to update that preview's surface texture to our own textureView
-        }
-
-        CameraX.bindToLifecycle(this, preview, imageCapture)
     }
 
     private fun updateTransform() {
@@ -129,4 +100,41 @@ class MainActivity : AppCompatActivity(), Executor {
         textureView.setTransform(matrix)
     }
 
+    private var lensFacing = CameraX.LensFacing.BACK
+    private var imageCapture: ImageCapture? = null
+
+    private fun bindCameraUseCases() {
+        CameraX.unbindAll()
+
+        val previewConfig = PreviewConfig.Builder().apply {
+//            setTargetResolution(Size(1080, 1080))java.lang.IllegalArgumentException: Cannot use both setTargetResolution and setTargetAspectRatio on the same config.
+            setTargetAspectRatio(AspectRatio.RATIO_16_9)
+            setLensFacing(lensFacing)// To set default lens
+        }.build()
+
+        val preview = Preview(previewConfig)
+
+        val imageCaptureConfig = ImageCaptureConfig.Builder().apply {
+            setTargetAspectRatio(AspectRatio.RATIO_16_9)// optional
+            setCaptureMode(ImageCapture.CaptureMode.MAX_QUALITY)
+        }.build()
+
+        imageCapture = ImageCapture(imageCaptureConfig)
+
+
+        preview.setOnPreviewOutputUpdateListener {
+            // textureView.parent gives us the whole screen
+            val parent = textureView.parent as ViewGroup// get current root of the textureView
+            parent.removeView(textureView)
+            parent.addView(textureView, 0)
+            updateTransform()// make this function for handling rotation & other transformations if there
+//            textureView.surfaceTexture = it.surfaceTexture
+
+            textureView.setSurfaceTexture(it.surfaceTexture)
+            // The preview we're getting, we need to update that preview's surface texture to our own textureView
+        }
+
+        // Apply declared configs to CameraX using the same lifecycle owner
+        CameraX.bindToLifecycle(this, preview, imageCapture)
+    }
 }
