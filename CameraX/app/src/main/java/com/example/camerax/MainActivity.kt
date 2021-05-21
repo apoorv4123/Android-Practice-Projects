@@ -11,7 +11,6 @@ import androidx.camera.core.*
 import androidx.core.app.ActivityCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
-import java.lang.Exception
 import java.util.concurrent.Executor
 
 //const val PERMISSION_REQUEST_CAMERA = 1234
@@ -30,7 +29,8 @@ class MainActivity : AppCompatActivity(), Executor {
             == PackageManager.PERMISSION_GRANTED
         ) {
             // Start your work for camera
-            textureView.post { 
+            textureView.post { // Creating a separate thread in which implementation of camera should start only
+                // after texture view has been properly inflated
                 startCamera()
             }
         } else {
@@ -52,11 +52,8 @@ class MainActivity : AppCompatActivity(), Executor {
             val file = File(externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
             imageCapture?.takePicture(file, this, object : ImageCapture.OnImageSavedListener {
                 override fun onImageSaved(file: File) {
-<<<<<<< HEAD
                     // Toast.makeText( this@MainActivity, "Image Captured ${file.absolutePath}", Toast.LENGTH_LONG
                     //).show()// We cannot print toast here, bcoz this is not Main thread
-=======
->>>>>>> b38b7618bbdaa6a0ad481e24c4ad7a23e2aa1105
                     Log.i("IMAGECAPTURE", "Image Captured ${file.absolutePath}")
                 }
 
@@ -65,25 +62,16 @@ class MainActivity : AppCompatActivity(), Executor {
                     message: String,
                     cause: Throwable?
                 ) {
-<<<<<<< HEAD
                     //Toast.makeText( this@MainActivity, "Error Capturing $message", Toast.LENGTH_LONG ).show()
-=======
->>>>>>> b38b7618bbdaa6a0ad481e24c4ad7a23e2aa1105
                     Log.i("IMAGECAPTURE", "Error Capturing $message")
                 }
             })
         }
 
-<<<<<<< HEAD
         // button to swap lens
         btnSwap.setOnClickListener {
             Log.i("LENSSWAPPED", "Lens Swapped")
             lensFacing = if (CameraX.LensFacing.FRONT == lensFacing) {
-=======
-        // Button for changing lenses
-        btnSwap.setOnClickListener {
-            lensFacing = if(CameraX.LensFacing.FRONT == lensFacing) {
->>>>>>> b38b7618bbdaa6a0ad481e24c4ad7a23e2aa1105
                 CameraX.LensFacing.BACK
             } else {
                 CameraX.LensFacing.FRONT
@@ -91,7 +79,6 @@ class MainActivity : AppCompatActivity(), Executor {
             try {
                 CameraX.getCameraControl(lensFacing)
                 bindCameraUseCases()
-<<<<<<< HEAD
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -100,12 +87,6 @@ class MainActivity : AppCompatActivity(), Executor {
 //                textureView.setSurfaceTexture(it.surfaceTexture)
 //            }
 //            CameraX.bindToLifecycle(this, preview, imageCapture)
-=======
-            } catch (e:Exception) {
-                e.printStackTrace()
-            }
-        }
->>>>>>> b38b7618bbdaa6a0ad481e24c4ad7a23e2aa1105
     }
 
     private fun updateTransform() {
@@ -122,7 +103,6 @@ class MainActivity : AppCompatActivity(), Executor {
             Surface.ROTATION_270 -> 270
             else -> return
         }
-<<<<<<< HEAD
 
         matrix.postRotate(-rotationDegrees.toFloat(), centerX, centerY)
 
@@ -151,7 +131,7 @@ class MainActivity : AppCompatActivity(), Executor {
         val imageCaptureConfig = ImageCaptureConfig.Builder().apply {
             setTargetAspectRatio(AspectRatio.RATIO_16_9)// optional
             setCaptureMode(ImageCapture.CaptureMode.MAX_QUALITY)
-            setLensFacing(lensFacing)
+            setLensFacing(lensFacing)//So that image can be captured even after changing lens
         }.build()
 
         imageCapture = ImageCapture(imageCaptureConfig)
@@ -180,50 +160,6 @@ class MainActivity : AppCompatActivity(), Executor {
             preview,
             imageCapture
         )// Apply declared configs to CameraX using the same lifecycle owner
-=======
->>>>>>> b38b7618bbdaa6a0ad481e24c4ad7a23e2aa1105
 
     }
-<<<<<<< HEAD
 }
-=======
-
-    private var lensFacing = CameraX.LensFacing.BACK
-    private var imageCapture: ImageCapture? = null
-
-    private fun bindCameraUseCases() {
-        CameraX.unbindAll()
-
-        val previewConfig = PreviewConfig.Builder().apply {
-//            setTargetResolution(Size(1080, 1080))java.lang.IllegalArgumentException: Cannot use both setTargetResolution and setTargetAspectRatio on the same config.
-            setTargetAspectRatio(AspectRatio.RATIO_16_9)
-            setLensFacing(lensFacing)// To set default lens
-        }.build()
-
-        val preview = Preview(previewConfig)
-
-        val imageCaptureConfig = ImageCaptureConfig.Builder().apply {
-            setTargetAspectRatio(AspectRatio.RATIO_16_9)// optional
-            setCaptureMode(ImageCapture.CaptureMode.MAX_QUALITY)
-        }.build()
-
-        imageCapture = ImageCapture(imageCaptureConfig)
-
-
-        preview.setOnPreviewOutputUpdateListener {
-            // textureView.parent gives us the whole screen
-            val parent = textureView.parent as ViewGroup// get current root of the textureView
-            parent.removeView(textureView)
-            parent.addView(textureView, 0)
-            updateTransform()// make this function for handling rotation & other transformations if there
-//            textureView.surfaceTexture = it.surfaceTexture
-
-            textureView.setSurfaceTexture(it.surfaceTexture)
-            // The preview we're getting, we need to update that preview's surface texture to our own textureView
-        }
-
-        // Apply declared configs to CameraX using the same lifecycle owner
-        CameraX.bindToLifecycle(this, preview, imageCapture)
-    }
-}
->>>>>>> b38b7618bbdaa6a0ad481e24c4ad7a23e2aa1105
